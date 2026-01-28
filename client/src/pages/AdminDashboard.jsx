@@ -210,16 +210,22 @@ export default function AdminDashboard() {
 
                     {/* Controls */}
                     <div className="flex items-center gap-2 md:pl-6 border-l border-gray-100">
-                        {item.status === 'upcoming' || item.status === 'delayed' ? (
+                        {/* Start Button - Available for Upcoming, Delayed, AND Completed (Restart) */}
+                        {item.status !== 'live' ? (
                             <button
                                 onClick={() => startItem(item.id)}
-                                className="flex items-center justify-center p-3 rounded-full bg-green-50 text-green-600 hover:bg-green-100 hover:scale-105 transition-all border border-green-200"
-                                title="Start Event"
+                                className={cn("flex items-center justify-center p-3 rounded-full transition-all border",
+                                    item.status === 'completed' 
+                                        ? "bg-gray-50 text-gray-500 border-gray-200 hover:bg-green-50 hover:text-green-600 hover:border-green-200" 
+                                        : "bg-green-50 text-green-600 border-green-200 hover:bg-green-100 hover:scale-105"
+                                )}
+                                title={item.status === 'completed' ? "Restart Event" : "Start Event"}
                             >
                                 <Play className="w-5 h-5 fill-current" />
                             </button>
                         ) : null}
 
+                        {/* End Button - Only for Live */}
                         {item.status === 'live' && (
                              <button
                                 onClick={() => endItem(item.id)}
@@ -229,22 +235,13 @@ export default function AdminDashboard() {
                                  <Square className="w-5 h-5 fill-current" />
                              </button>
                         )}
-
-                        {(item.status === 'upcoming' || item.status === 'live') && (
-                             <button
-                                onClick={() => delayItem(item.id)}
-                                className="flex items-center justify-center p-3 rounded-full bg-yellow-50 text-yellow-600 hover:bg-yellow-100 transition-all border border-yellow-200"
-                                title="Mark Delayed"
-                             >
-                                 <Pause className="w-5 h-5" />
-                             </button>
-                        )}
                         
+                        {/* Reset Button - Mostly for cleanup, keep for completed */}
                         {item.status === 'completed' && (
                             <button
                                 onClick={() => resetItem(item.id)}
                                 className="flex items-center justify-center p-3 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-900 transition-all"
-                                title="Reset"
+                                title="Reset to Upcoming"
                             >
                                 <RotateCcw className="w-4 h-4" />
                             </button>

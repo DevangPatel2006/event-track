@@ -13,7 +13,38 @@ export default function PublicView() {
     return () => clearInterval(timer);
   }, []);
 
+  // Helper to parse "Day, Date Time" strings
+  const parseSchedule = (dateStr, timeStr) => {
+      // Handle "From 4:00 PM" -> "4:00 PM"
+      const cleanTime = timeStr.split('-')[0].replace(/From/i, '').trim(); 
+      const dt = new Date(`${dateStr} ${cleanTime}`);
+      return isNaN(dt.getTime()) ? null : dt;
+  };
+
+  // Calculate Cumulative Delay
+  let currentDelayMs = 0;
+  
+  // 1. Check Live Event Delay
   const liveItem = timeline.find(t => t.status === 'live');
+  if (liveItem && liveItem.actual_start) {
+      const scheduled = parseSchedule(liveItem.date, liveItem.time);
+      const actual = new Date(liveItem.actual_start);
+      if (scheduled && actual) {
+          currentDelayMs = actual - scheduled;
+      }
+  } 
+  // 2. If no Live event, check if the last completed event ended late? 
+  // (Optional: usually cascading delay is mostly relevant when an event is live or just finished late)
+  // For simplicity, we stick to Live event delay shifting the timeline.
+
+  const formatDelay = (ms) => {
+      if (ms <= 300000) return null; // Ignore < 5 mins
+      const mins = Math.floor(ms / 60000);
+      const hours = Math.floor(mins / 60);
+      const m = mins % 60;
+      return `+${hours > 0 ? `${hours}h ` : ''}${m}m Delay`;
+  };
+
   const upcomingItems = timeline.filter(t => t.status === 'upcoming' || t.status === 'delayed');
   const completedItems = timeline.filter(t => t.status === 'completed').reverse();
 
@@ -24,42 +55,6 @@ export default function PublicView() {
     const minutes = Math.floor((diff / (1000 * 60)) % 60);
     const hours = Math.floor(diff / (1000 * 60 * 60));
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-  };
-
-  const getDelay = (item) => {
-      if (!item.time || !item.date) return null;
-      
-      // Parse Scheduled Start
-      const dateStr = item.date; // "27 Jan 2026"
-      const timeStr = item.time.split('-')[0].trim(); // "8:30 AM"
-      const scheduledStart = new Date(`${dateStr} ${timeStr}`);
-      
-      if (isNaN(scheduledStart.getTime())) return null;
-
-      let comparisonTime = new Date();
-      if (item.actual_start) {
-          comparisonTime = new Date(item.actual_start);
-      } else if (item.status === 'completed' && item.actual_end) {
-           // For completed items, we might not care about delay display as much, 
-           // but if we did, we'd need actual start. 
-           // If we don't store actual start for completed permanently (we do in updated server code),
-           // check if we have it.
-           // However, for Public View, usually we show delay on Upcoming/Live.
-           comparisonTime = new Date(); 
-      }
-
-      // If scheduled time is in future relative to comparison time, no delay
-      if (scheduledStart > comparisonTime) return null;
-
-      const diffMs = comparisonTime - scheduledStart;
-      const diffMins = Math.floor(diffMs / 60000);
-
-      if (diffMins <= 5) return null; // Ignore negligible delays
-
-      const hours = Math.floor(diffMins / 60);
-      const mins = diffMins % 60;
-      
-      return `+${hours > 0 ? `${hours}h ` : ''}${mins}m Delay`;
   };
 
   return (
@@ -89,9 +84,9 @@ export default function PublicView() {
                             <span className="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-full text-sm font-bold border border-green-200 animate-pulse shadow-sm">
                                 <Radio className="w-4 h-4" /> LIVE
                             </span>
-                            {getDelay(liveItem) && (
+                            {formatDelay(currentDelayMs) && (
                                 <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded border border-red-100">
-                                    {getDelay(liveItem)}
+                                    {formatDelay(currentDelayMs)}
                                 </span>
                             )}
                         </div>
@@ -141,7 +136,8 @@ export default function PublicView() {
                     <div className="space-y-4">
                         {upcomingItems.length === 0 && <p className="text-slate-400 italic pl-4">No upcoming events.</p>}
                         {upcomingItems.map((item, idx) => {
-                             const delayText = getDelay(item);
+                             // Propagate cascading delay
+                             const delayText = formatDelay(currentDelayMs);
                              return (
                             <div key={item.id} className={cn("p-6 rounded-xl border transition-all hover:border-blue-200 hover:shadow-md bg-white", 
                                 item.status === 'delayed' ? "border-yellow-200 bg-yellow-50/50" : "border-gray-100"
