@@ -10,25 +10,24 @@ export default function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
-    
-    try {
-      const res = await fetch('http://localhost:3000/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
+
+    // Hardcoded credentials
+    const admins = [
+        { email: 'admin1@example.com', password: 'password123', name: 'Admin One' },
+        { email: 'admin2@example.com', password: 'password123', name: 'Admin Two' },
+        { email: 'admin3@example.com', password: 'password123', name: 'Admin Three' },
+        { email: 'admin4@example.com', password: 'password123', name: 'Admin Four' },
+        { email: 'admin5@example.com', password: 'password123', name: 'Admin Five' },
+    ];
+
+    const user = admins.find(u => u.email === email && u.password === password);
       
-      const data = await res.json();
-      
-      if (data.success) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
+    if (user) {
+        localStorage.setItem('token', 'dummy-token-123'); // Dummy token for simple auth check
+        localStorage.setItem('user', JSON.stringify(user));
         navigate('/admin');
-      } else {
-        setError(data.message || 'Login failed');
-      }
-    } catch (err) {
-        setError('Network error');
+    } else {
+        setError('Invalid credentials');
     }
   };
 
@@ -36,7 +35,7 @@ export default function Login() {
     <div className="flex min-h-screen items-center justify-center p-4">
       <div className="w-full max-w-sm space-y-8 rounded-2xl bg-slate-900 p-8 shadow-xl border border-slate-800">
         <div className="text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-white">Admin Access</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-white">Event Admin Login</h2>
         </div>
         <form className="space-y-6" onSubmit={handleLogin}>
           <div className="space-y-2">

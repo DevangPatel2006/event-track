@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { useSocket } from '../context/SocketContext';
+import { useTimeline } from '../context/TimelineContext';
 import { format } from 'date-fns';
-import { Clock, Radio, Calendar } from 'lucide-react';
+import { Clock, Radio, Calendar, MapPin } from 'lucide-react';
 import { cn } from '../lib/utils';
+import Logo from '../components/Logo';
 
 export default function PublicView() {
-  const { timeline, isConnected } = useSocket();
+  const { timeline } = useTimeline();
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
@@ -22,20 +23,21 @@ export default function PublicView() {
   };
 
   // Calculate Cumulative Delay
-  let currentDelayMs = 0;
-  
-  // 1. Check Live Event Delay
-  const liveItem = timeline.find(t => t.status === 'live');
-  if (liveItem && liveItem.actual_start) {
-      const scheduled = parseSchedule(liveItem.date, liveItem.time);
-      const actual = new Date(liveItem.actual_start);
-      if (scheduled && actual) {
-          currentDelayMs = actual - scheduled;
+  const getDelayMs = (item) => {
+      let delay = 0;
+      if (item && item.actual_start) {
+          const scheduled = parseSchedule(item.date, item.time);
+          const actual = new Date(item.actual_start);
+          if (scheduled && actual) {
+              delay = actual - scheduled;
+          }
       }
-  } 
-  // 2. If no Live event, check if the last completed event ended late? 
-  // (Optional: usually cascading delay is mostly relevant when an event is live or just finished late)
-  // For simplicity, we stick to Live event delay shifting the timeline.
+      return delay;
+  };
+
+  const liveItems = timeline.filter(t => t.status === 'live');
+  const primaryLiveItem = liveItems[0]; 
+  const currentDelayMs = primaryLiveItem ? getDelayMs(primaryLiveItem) : 0;
 
   const formatDelay = (ms) => {
       if (ms <= 300000) return null; // Ignore < 5 mins
@@ -58,109 +60,123 @@ export default function PublicView() {
   };
 
   return (
-    <div className="min-h-screen bg-white p-6 md:p-12 font-sans text-slate-900 flex flex-col items-center">
+    <div className="min-h-screen bg-white text-slate-900 font-sans flex flex-col items-center p-4 md:p-8">
         {/* Header */}
-        <header className="mb-12 text-center w-full max-w-5xl border-b border-gray-100 pb-8">
-            <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-slate-900 mb-2 uppercase">
-                Event Schedule
-            </h1>
-            <div className="flex items-center justify-center gap-6 text-slate-500 mt-4">
-                <div className="flex items-center gap-2">
-                    <Clock className="w-5 h-5" />
-                    <span className="text-xl font-mono font-medium">{format(now, 'HH:mm:ss')}</span>
+        <header className="mb-8 w-full max-w-lg flex flex-col items-center border-b border-gray-100 pb-6">
+            <div className="flex items-center gap-3 mb-2">
+                <Logo className="w-8 h-8 text-black" />
+                <h1 className="text-2xl font-black tracking-tighter uppercase text-black">
+                    Event Schedule
+                </h1>
+            </div>
+            <div className="flex items-center justify-center gap-4 text-slate-500 text-xs font-medium tracking-wide">
+                <div className="flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span className="font-mono">{format(now, 'HH:mm:ss')}</span>
                 </div>
-                {!isConnected && <span className="text-xs text-red-500 font-bold bg-red-50 px-2 py-1 rounded-full border border-red-100">OFFLINE</span>}
+                <div className="w-1 h-1 rounded-full bg-slate-300"></div>
+                <span className="uppercase">{format(now, 'EEE, dd MMM')}</span>
             </div>
         </header>
 
-        <div className="w-full max-w-6xl space-y-12">
+        <div className="w-full max-w-lg space-y-8 pb-10">
             
             {/* LIVE Section */}
-            {liveItem ? (
-                <div key={liveItem.id} className="relative group">
-                    <div className="absolute -inset-0.5 bg-gradient-to-r from-green-500 to-green-600 rounded-3xl opacity-30 group-hover:opacity-50 transition duration-1000 animate-pulse"></div>
-                    <div className="relative bg-white ring-1 ring-green-100 rounded-2xl p-8 md:p-12 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.05)] border border-green-500/10">
-                        <div className="absolute top-0 right-0 p-6 flex flex-col items-end gap-2">
-                            <span className="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-full text-sm font-bold border border-green-200 animate-pulse shadow-sm">
-                                <Radio className="w-4 h-4" /> LIVE
-                            </span>
-                            {formatDelay(currentDelayMs) && (
-                                <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded border border-red-100">
-                                    {formatDelay(currentDelayMs)}
-                                </span>
-                            )}
-                        </div>
-                        
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-                            <div className="space-y-4">
-                                <div className="inline-flex items-center gap-2 text-slate-500 text-sm font-bold uppercase tracking-widest">
-                                    <Calendar className="w-4 h-4" />
-                                    {liveItem.day} • {liveItem.time}
+            {liveItems.length > 0 ? (
+                <div className="space-y-4">
+                    {liveItems.map(liveItem => {
+                         const currentDelayMs = getDelayMs(liveItem);
+
+                         return (
+                        <div key={liveItem.id} className="relative group overflow-hidden bg-black text-white rounded-xl shadow-xl">
+                            <div className="p-6">
+                                <div className="flex justify-between items-start mb-4">
+                                    <span className="flex items-center gap-1.5 px-3 py-1 bg-white text-black rounded-full text-[10px] font-bold animate-pulse uppercase tracking-wider">
+                                        <Radio className="w-3 h-3" /> LIVE NOW
+                                    </span>
+                                    {formatDelay(currentDelayMs) && (
+                                        <span className="text-[10px] font-bold text-yellow-500 bg-white/10 px-2 py-1 rounded">
+                                            {formatDelay(currentDelayMs)}
+                                        </span>
+                                    )}
                                 </div>
-                                <h2 className="text-4xl md:text-6xl font-bold text-slate-900 leading-none tracking-tight">
+                                
+                                <h2 className="text-2xl font-bold mb-1 leading-tight">
                                     {liveItem.title}
                                 </h2>
-                                <p className="text-xl md:text-2xl text-slate-600 max-w-3xl leading-relaxed font-light">{liveItem.description}</p>
                                 
+                                <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-white/20">
+                                    <div className="flex justify-between items-center">
+                                        <div className="flex items-center gap-2 text-sm text-gray-300">
+                                            <Calendar className="w-4 h-4" />
+                                            <span className="font-medium">{liveItem.time}</span>
+                                        </div>
+                                        <div className="font-mono text-xl font-bold text-white tracking-tight">
+                                            {getElapsedTime(liveItem.actual_start)}
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="flex items-center gap-2 text-sm text-gray-300">
+                                        <MapPin className="w-4 h-4" />
+                                        <span className="font-medium">{liveItem.venue || 'No Venue'}</span>
+                                    </div>
+                                </div>
+
                                 {liveItem.remarks && (
-                                    <div className="mt-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-r-lg max-w-2xl">
-                                        <p className="text-sm font-bold text-yellow-800 uppercase mb-1">Update</p>
-                                        <p className="text-yellow-900">{liveItem.remarks}</p>
+                                    <div className="mt-4 p-3 bg-white/10 rounded-lg">
+                                        <p className="text-yellow-400 text-xs font-medium">{liveItem.remarks}</p>
                                     </div>
                                 )}
                             </div>
-                            <div className="text-right min-w-[200px] border-l-2 border-green-100 pl-8 hidden md:block">
-                                <p className="text-xs text-slate-400 uppercase tracking-widest font-bold mb-2">Duration</p>
-                                <p className="text-5xl font-mono font-bold text-green-600 tracking-tighter">
-                                    {getElapsedTime(liveItem.actual_start)}
-                                </p>
-                            </div>
                         </div>
-                    </div>
+                    )})}
                 </div>
             ) : (
-                <div className="text-center py-20 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
-                    <p className="text-3xl text-slate-400 font-light">Waiting for event to start...</p>
+                <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+                    <p className="text-slate-400 font-medium text-sm">Waiting for event to start...</p>
                 </div>
             )}
 
             {/* UPCOMING & COMPLETED Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            <div className="space-y-8">
                 
                 {/* UPCOMING */}
                 <section>
-                    <h3 className="text-2xl font-bold mb-8 flex items-center gap-3 text-slate-800 border-b border-gray-100 pb-4">
-                        <span className="w-3 h-3 rounded-full bg-blue-500 ring-4 ring-blue-100"></span>
+                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-black"></span>
                         Upcoming
                     </h3>
-                    <div className="space-y-4">
-                        {upcomingItems.length === 0 && <p className="text-slate-400 italic pl-4">No upcoming events.</p>}
-                        {upcomingItems.map((item, idx) => {
-                             // Propagate cascading delay
+                    <div className="space-y-3">
+                        {upcomingItems.length === 0 && <p className="text-slate-400 text-xs italic">No upcoming events.</p>}
+                        {upcomingItems.map((item) => {
                              const delayText = formatDelay(currentDelayMs);
                              return (
-                            <div key={item.id} className={cn("p-6 rounded-xl border transition-all hover:border-blue-200 hover:shadow-md bg-white", 
+                            <div key={item.id} className={cn("p-4 rounded-xl border bg-white shadow-sm transition-shadow", 
                                 item.status === 'delayed' ? "border-yellow-200 bg-yellow-50/50" : "border-gray-100"
                             )}>
-                                <div className="flex justify-between items-start mb-2">
-                                    <div>
-                                        <span className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-1 block">
-                                            {item.day} • {item.time}
-                                        </span>
-                                        <h4 className="text-xl font-bold text-slate-900">{item.title}</h4>
+                                <div className="flex justify-between items-start gap-4 mb-2">
+                                    <div className="min-w-0">
+                                        <div className="text-[10px] font-bold text-slate-500 uppercase mb-1">
+                                            {item.time}
+                                        </div>
+                                        <h4 className="text-base font-bold text-slate-900 leading-snug">{item.title}</h4>
                                     </div>
-                                    <div className="flex flex-col items-end gap-1">
-                                         {item.status === 'delayed' && <span className="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs font-bold rounded border border-yellow-200">DELAYED</span>}
+                                    <div className="flex flex-col items-end gap-1 shrink-0">
+                                         {item.status === 'delayed' && <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-[10px] font-bold rounded">DELAYED</span>}
                                          {delayText && (
-                                             <span className="px-2 py-1 bg-red-50 text-red-600 text-xs font-bold rounded border border-red-100">{delayText}</span>
+                                             <span className="px-2 py-0.5 bg-red-50 text-red-600 text-[10px] font-bold rounded">{delayText}</span>
                                          )}
                                     </div>
                                 </div>
-                                <p className="text-slate-500 text-sm mt-2">{item.description}</p>
+                                
+                                <div className="flex items-center gap-1.5 text-slate-500 text-xs font-medium mt-1">
+                                    <MapPin className="w-3.5 h-3.5" />
+                                    {item.venue || 'TBA'}
+                                </div>
+
                                 {item.remarks && (
-                                    <p className="mt-3 text-sm text-slate-600 bg-slate-50 p-2 rounded border border-slate-100">
-                                        <span className="font-bold text-slate-500 text-xs uppercase mr-2">Note:</span>
-                                        {item.remarks}
+                                    <p className="mt-3 text-[10px] text-slate-600 bg-gray-50 p-2 rounded border border-gray-100">
+                                        <span className="font-bold text-slate-500">NOTE:</span> {item.remarks}
                                     </p>
                                 )}
                             </div>
@@ -170,28 +186,21 @@ export default function PublicView() {
 
                 {/* COMPLETED */}
                 <section>
-                    <h3 className="text-2xl font-bold mb-8 flex items-center gap-3 text-slate-400 border-b border-gray-100 pb-4">
-                        <span className="w-3 h-3 rounded-full bg-slate-300"></span>
+                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-gray-300"></span>
                         Completed
                     </h3>
-                    <div className="space-y-4 opacity-75 grayscale hover:grayscale-0 transition-all duration-500">
-                        {completedItems.length === 0 && <p className="text-slate-400 italic pl-4">No events completed yet.</p>}
+                    <div className="space-y-3 opacity-60">
+                        {completedItems.length === 0 && <p className="text-slate-400 text-xs italic">No events completed yet.</p>}
                         {completedItems.map(item => (
-                            <div key={item.id} className="p-6 rounded-xl bg-gray-50 border border-gray-100">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1 block line-through">
-                                            {item.day} • {item.time}
-                                        </span>
-                                        <h4 className="text-lg font-semibold text-slate-500 line-through decoration-slate-300">{item.title}</h4>
-                                        {item.remarks && (
-                                            <p className="mt-2 text-xs text-slate-400">
-                                                Note: {item.remarks}
-                                            </p>
-                                        )}
-                                    </div>
-                                    <span className="text-xs font-mono text-slate-400 bg-gray-200 px-2 py-1 rounded">Ended</span>
+                            <div key={item.id} className="p-3 rounded-lg border border-gray-100 bg-gray-50 flex justify-between items-center">
+                                <div className="min-w-0">
+                                    <span className="text-[10px] font-bold text-slate-400 block line-through">
+                                        {item.time}
+                                    </span>
+                                    <h4 className="text-sm font-medium text-slate-500 line-through truncate">{item.title}</h4>
                                 </div>
+                                <span className="text-[10px] text-slate-400 bg-gray-200 px-2 py-1 rounded font-medium">Ended</span>
                             </div>
                         ))}
                     </div>
