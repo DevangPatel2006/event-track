@@ -24,7 +24,7 @@ export default function PublicView() {
 
   const liveItems = timeline.filter(t => t.status === 'live');
 
-  const upcomingItems = timeline.filter(t => t.status === 'upcoming');
+  const upcomingItems = timeline.filter(t => t.status === 'upcoming' || !t.status);
   // Removed .reverse() to keep them in chronological sequence 1...N
   const completedItems = timeline.filter(t => t.status === 'completed');
 
