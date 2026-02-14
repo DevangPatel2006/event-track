@@ -22,32 +22,9 @@ export default function PublicView() {
       return isNaN(dt.getTime()) ? null : dt;
   };
 
-  // Calculate Cumulative Delay
-  const getDelayMs = (item) => {
-      let delay = 0;
-      if (item && item.actual_start) {
-          const scheduled = parseSchedule(item.date, item.time);
-          const actual = new Date(item.actual_start);
-          if (scheduled && actual) {
-              delay = actual - scheduled;
-          }
-      }
-      return delay;
-  };
-
   const liveItems = timeline.filter(t => t.status === 'live');
-  const primaryLiveItem = liveItems[0]; 
-  const currentDelayMs = primaryLiveItem ? getDelayMs(primaryLiveItem) : 0;
 
-  const formatDelay = (ms) => {
-      if (ms <= 300000) return null; // Ignore < 5 mins
-      const mins = Math.floor(ms / 60000);
-      const hours = Math.floor(mins / 60);
-      const m = mins % 60;
-      return `+${hours > 0 ? `${hours}h ` : ''}${m}m Delay`;
-  };
-
-  const upcomingItems = timeline.filter(t => t.status === 'upcoming' || t.status === 'delayed');
+  const upcomingItems = timeline.filter(t => t.status === 'upcoming');
   const completedItems = timeline.filter(t => t.status === 'completed').reverse();
 
   const getElapsedTime = (start) => {
@@ -85,8 +62,6 @@ export default function PublicView() {
             {liveItems.length > 0 ? (
                 <div className="space-y-4">
                     {liveItems.map(liveItem => {
-                         const currentDelayMs = getDelayMs(liveItem);
-
                          return (
                         <div key={liveItem.id} className="relative group overflow-hidden bg-black text-white rounded-xl shadow-xl">
                             <div className="p-6">
@@ -94,11 +69,6 @@ export default function PublicView() {
                                     <span className="flex items-center gap-1.5 px-3 py-1 bg-white text-black rounded-full text-[10px] font-bold animate-pulse uppercase tracking-wider">
                                         <Radio className="w-3 h-3" /> LIVE NOW
                                     </span>
-                                    {formatDelay(currentDelayMs) && (
-                                        <span className="text-[10px] font-bold text-yellow-500 bg-white/10 px-2 py-1 rounded">
-                                            {formatDelay(currentDelayMs)}
-                                        </span>
-                                    )}
                                 </div>
                                 
                                 <h2 className="text-2xl font-bold mb-1 leading-tight">
@@ -149,23 +119,14 @@ export default function PublicView() {
                     <div className="space-y-3">
                         {upcomingItems.length === 0 && <p className="text-slate-400 text-xs italic">No upcoming events.</p>}
                         {upcomingItems.map((item) => {
-                             const delayText = formatDelay(currentDelayMs);
                              return (
-                            <div key={item.id} className={cn("p-4 rounded-xl border bg-white shadow-sm transition-shadow", 
-                                item.status === 'delayed' ? "border-yellow-200 bg-yellow-50/50" : "border-gray-100"
-                            )}>
+                            <div key={item.id} className="p-4 rounded-xl border bg-white shadow-sm border-gray-100 transition-shadow">
                                 <div className="flex justify-between items-start gap-4 mb-2">
                                     <div className="min-w-0">
                                         <div className="text-[10px] font-bold text-slate-500 uppercase mb-1">
                                             {item.time}
                                         </div>
                                         <h4 className="text-base font-bold text-slate-900 leading-snug">{item.title}</h4>
-                                    </div>
-                                    <div className="flex flex-col items-end gap-1 shrink-0">
-                                         {item.status === 'delayed' && <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-[10px] font-bold rounded">DELAYED</span>}
-                                         {delayText && (
-                                             <span className="px-2 py-0.5 bg-red-50 text-red-600 text-[10px] font-bold rounded">{delayText}</span>
-                                         )}
                                     </div>
                                 </div>
                                 

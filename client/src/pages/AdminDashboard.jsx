@@ -5,7 +5,7 @@ import { Play, Square, Pause, RotateCcw, LogOut, Plus, Edit2, Check, X, MapPin }
 import { cn } from '../lib/utils';
 
 export default function AdminDashboard() {
-  const { timeline, startEvent, endEvent, resetEvent, updateRemark, updateEventTime, updateVenue, delayEvent } = useTimeline();
+  const { timeline, startEvent, endEvent, resetEvent, updateRemark, updateEventTime, updateVenue } = useTimeline();
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [remarkInputs, setRemarkInputs] = useState({});
@@ -55,12 +55,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleDelay = (id) => {
-      if (confirm('Mark this event as delayed?')) {
-          delayEvent(id);
-      }
-  };
-
   const handleRemarkChange = (id, value) => {
       setRemarkInputs(prev => ({ ...prev, [id]: value }));
   };
@@ -84,33 +78,6 @@ export default function AdminDashboard() {
       updateEventTime(id, editForm.date, editForm.time);
       updateVenue(id, editForm.venue);
       setEditingId(null);
-  };
-
-  const getDelay = (item) => {
-      if (!item.time || !item.date) return null;
-      
-      const dateStr = item.date; 
-      const timeStr = item.time.split('-')[0].trim();
-      const scheduledStart = new Date(`${dateStr} ${timeStr}`);
-      
-      if (isNaN(scheduledStart.getTime())) return null;
-
-      let comparisonTime = new Date();
-      if (item.actual_start) {
-          comparisonTime = new Date(item.actual_start);
-      }
-
-      if (scheduledStart > comparisonTime) return null;
-
-      const diffMs = comparisonTime - scheduledStart;
-      const diffMins = Math.floor(diffMs / 60000);
-
-      if (diffMins <= 5) return null; 
-
-      const hours = Math.floor(diffMins / 60);
-      const mins = diffMins % 60;
-      
-      return `+${hours > 0 ? `${hours}h ` : ''}${mins}m Delay`;
   };
 
   if (!user) return null;
@@ -148,7 +115,6 @@ export default function AdminDashboard() {
 
         <div className="space-y-4">
             {timeline.map((item) => {
-                const delayText = getDelay(item);
                 const isEditing = editingId === item.id;
                 
                 return (
@@ -211,13 +177,6 @@ export default function AdminDashboard() {
                              {item.status === 'live' && <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700 animate-pulse uppercase tracking-wide">LIVE NOW</span>}
                              {item.status === 'completed' && <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-600 uppercase tracking-wide">COMPLETED</span>}
                              {item.status === 'upcoming' && <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-600 uppercase tracking-wide">UPCOMING</span>}
-                             {item.status === 'delayed' && <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-yellow-100 text-yellow-700 uppercase tracking-wide">DELAYED</span>}
-                             
-                             {delayText && (
-                                 <span className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-100">
-                                     {delayText}
-                                 </span>
-                             )}
                         </div>
                     </div>
 

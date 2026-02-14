@@ -11,10 +11,20 @@ export const TimelineProvider = ({ children }) => {
     return saved ? JSON.parse(saved) : INITIAL_TIMELINE;
   });
 
-  // Persist to localStorage whenever timeline changes
+  // Sync across tabs
   useEffect(() => {
-    localStorage.setItem('timeline_data', JSON.stringify(timeline));
-  }, [timeline]);
+    const handleStorageChange = (e) => {
+      if (e.key === 'timeline_data') {
+        const newValue = e.newValue;
+        if (newValue) {
+          setTimeline(JSON.parse(newValue));
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   const startEvent = (id) => {
     setTimeline(prev => prev.map(item => {
@@ -75,12 +85,6 @@ export const TimelineProvider = ({ children }) => {
     ));
   };
 
-  const delayEvent = (id) => {
-      setTimeline(prev => prev.map(item => 
-        item.id === id ? { ...item, status: 'delayed' } : item
-      ));
-  };
-
   return (
     <TimelineContext.Provider value={{
       timeline,
@@ -89,8 +93,7 @@ export const TimelineProvider = ({ children }) => {
       resetEvent,
       updateRemark,
       updateEventTime,
-      updateVenue,
-      delayEvent
+      updateVenue
     }}>
       {children}
     </TimelineContext.Provider>
