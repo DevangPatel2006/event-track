@@ -25,7 +25,8 @@ export default function PublicView() {
   const liveItems = timeline.filter(t => t.status === 'live');
 
   const upcomingItems = timeline.filter(t => t.status === 'upcoming');
-  const completedItems = timeline.filter(t => t.status === 'completed').reverse();
+  // Removed .reverse() to keep them in chronological sequence 1...N
+  const completedItems = timeline.filter(t => t.status === 'completed');
 
   const getElapsedTime = (start) => {
     if (!start) return '00:00:00';
@@ -38,24 +39,7 @@ export default function PublicView() {
 
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans flex flex-col items-center p-4 md:p-8">
-        {/* Header */}
-        <header className="mb-8 w-full max-w-lg flex flex-col items-center border-b border-gray-100 pb-6">
-            <div className="flex items-center gap-3 mb-2">
-                <Logo className="w-8 h-8 text-black" />
-                <h1 className="text-2xl font-black tracking-tighter uppercase text-black">
-                    Event Schedule
-                </h1>
-            </div>
-            <div className="flex items-center justify-center gap-4 text-slate-500 text-xs font-medium tracking-wide">
-                <div className="flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5" />
-                    <span className="font-mono">{format(now, 'HH:mm:ss')}</span>
-                </div>
-                <div className="w-1 h-1 rounded-full bg-slate-300"></div>
-                <span className="uppercase">{format(now, 'EEE, dd MMM')}</span>
-            </div>
-        </header>
-
+        
         <div className="w-full max-w-lg space-y-8 pb-10">
             
             {/* LIVE Section */}
