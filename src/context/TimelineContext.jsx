@@ -26,6 +26,11 @@ export const TimelineProvider = ({ children }) => {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
+  // Persist to local storage whenever timeline changes
+  useEffect(() => {
+    localStorage.setItem('timeline_data', JSON.stringify(timeline));
+  }, [timeline]);
+
   const startEvent = (id) => {
     setTimeline(prev => prev.map(item => {
       if (item.id === id) {
