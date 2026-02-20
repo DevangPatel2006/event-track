@@ -13,11 +13,11 @@ export default function Login() {
 
     // Hardcoded credentials
     const admins = [
-        { email: 'admin1@example.com', password: 'password123', name: 'Admin One' },
-        { email: 'admin2@example.com', password: 'password123', name: 'Admin Two' },
-        { email: 'admin3@example.com', password: 'password123', name: 'Admin Three' },
-        { email: 'admin4@example.com', password: 'password123', name: 'Admin Four' },
-        { email: 'admin5@example.com', password: 'password123', name: 'Admin Five' },
+        { email: 'parthp@hts.com', password: 'parth123', name: 'Admin One' },
+        { email: 'karan@hts.com', password: 'karan123', name: 'Admin Two' },
+        { email: 'devang@hts.com', password: 'devang123', name: 'Admin Three' },
+        { email: 'vandan@hts.com', password: 'vandan123', name: 'Admin Four' },
+        { email: 'vraj@hts.com', password: 'vraj123', name: 'Admin Five' },
     ];
 
     const user = admins.find(u => u.email === email && u.password === password);
